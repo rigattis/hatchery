@@ -16,7 +16,8 @@ or
 - venv\Scripts\activate (windows)
 5. install requirements: pip install -r requirements.txt
 6. navigate to the hatchery folder: cd hatchery
-7. run the command files:
+7. run migrations: python manage.py migrate
+8. run the command files:
 - python manage.py add_contacts
 - python manage.py add_events
 - python manage.py add_machines
@@ -24,8 +25,8 @@ or
 - python manage.py add_schedule
 - python manage.py add_spaces
 - python manage.py add_trainers
-6. run the app locally: python manage.py runserver
-7. navigate to the app on localhost
+9. run the app locally: python manage.py runserver
+10. navigate to the app on localhost
 
 # Diagrams and Navigation
 
