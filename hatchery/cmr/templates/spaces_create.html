@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/space_create.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="form-container">
+  <div class="form-card">
+    <h2 class="form-title">Create</h2>
+    <p class="form-subtitle">Add a new space to the database</p>
+
+    <form action="." method="POST" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      {% if form.errors %}
+        <div class="errorlist">
+          {{ form.errors }}
+        </div>
+      {% endif %}
+
+      <!-- Title and Custom ID -->
+      <div class="form-row">
+        <div class="form-group half">
+          <label for="id_title">Title*</label>
+          {{ form.title }}
+        </div>
+        <div class="form-group half">
+          <label for="id_custom_id">Custom ID*</label>
+          {{ form.custom_id }}
+        </div>
+      </div>
+
+      <!-- Category and Capacity -->
+      <div class="form-row">
+        <div class="form-group half">
+          <label for="id_type">Category*</label>
+          {{ form.type }}
+        </div>
+        <div class="form-group half">
+          <label for="id_capacity">Capacity*</label>
+          {{ form.capacity }}
+        </div>
+      </div>
+
+      <!-- Floor and Location -->
+      <div class="form-row">
+        <div class="form-group half">
+          <label for="id_floor">Floor*</label>
+          {{ form.floor }}
+        </div>
+        <div class="form-group half">
+          <label for="id_location">Location*</label>
+          {{ form.location }}
+        </div>
+      </div>
+
+      <!-- Notes -->
+      <div class="form-group">
+        <label for="id_notes">Notes</label>
+        {{ form.notes }}
+      </div>
+
+      <!-- Floorplan Image -->
+      <div class="form-group">
+        <label for="id_floorplan_image">Floor Plan Image</label>
+        {{ form.floorplan_image }}
+      </div>
+
+      <!-- Capabilities (checkbox list) -->
+      <div class="form-group">
+        <label for="id_capabilities">Capabilities</label>
+        <div class="checkbox-group">
+          {{ form.capabilities }}
+        </div>
+      </div>
+
+      <!-- Current Machine -->
+      <div class="form-group">
+        <label for="id_current_machine">Current Machine</label>
+        {{ form.current_machine }}
+      </div>
+
+      <!-- Buttons -->
+      <div class="button-group">
+        <div class="action-buttons">
+          <a href="{% url 'space-list' %}" class="btn cancel-btn">Cancel</a>
+          <button type="submit" class="btn confirm-btn">Confirm</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

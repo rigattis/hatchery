@@ -1,0 +1,440 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/space_detail.css' %}">
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container py-3">
+  <a href="{% url 'trainer_list' %}" class="btn btn-link">&larr; Back to Trainers</a>
+
+  <div class="row g-3">
+    <div class="col-md-4">
+      {% if object.trainer_image %}
+        <img src="{{ object.trainer_image.url }}" class="img-fluid rounded shadow-sm" alt="{{ object.name }}">
+      {% endif %}
+    </div>
+    <div class="col-md-8">
+      <h2 class="mb-1">{{ object.name }}</h2>
+      <p class="text-muted mb-2">ID: {{ object.custom_id|default:"—" }}</p>
+      <p><strong>Major:</strong> {{ object.major|default:"—" }}</p>
+
+      <h5>Training Certificates</h5>
+      <p>{{ object.training_certificates|linebreaks }}</p>
+
+      <h5>Certified to Supervise</h5>
+      {% if object.certified_machines.all %}
+        <ul>
+          {% for machine in object.certified_machines.all %}
+            <li><a href="{{ machine.get_absolute_url }}">{{ machine.name }}</a> ({{ machine.custom_id }})</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p class="text-muted">No machine certifications listed.</p>
+      {% endif %}
+
+      <div class="d-flex gap-2 mt-3">
+        {% if user.is_authenticated %}
+                {% if user.is_superuser or user.is_staff %}
+                  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editTrainerModal">Edit</button>
+                  <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#reserveModal">Reserve</button>
+                  <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTrainerModal">Delete</button>
+                {% else %}
+                  {% if user.person %}
+                    {% if user.person.role == "Staff" %}
+                      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editTrainerModal">Edit</button>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#reserveModal">Reserve</button>
+        <button class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteTrainerModal">Delete</button>
+                  {% endif %}
+                {% endif %}
+              {% endif %}
+            {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal fade" id="editTrainerModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Trainer</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form method="POST" action="{% url 'trainer_edit' object.pk %}" enctype="multipart/form-data" class="space-form">
+          {% csrf_token %}
+          {% if form_edit.errors %}
+            <div class="alert alert-danger">
+              <strong>Please correct the following errors:</strong>
+              <ul class="mb-0">
+                {% for field in form_edit %}
+                  {% for error in field.errors %}
+                    <li>{{ field.label }}: {{ error }}</li>
+                  {% endfor %}
+                {% endfor %}
+                {% for error in form_edit.non_field_errors %}
+                  <li>{{ error }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+          {{ form_edit.as_p }}
+          <div class="d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Save</button>
+            <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Reservation Modal -->
+<div class="modal fade" id="reserveModal" tabindex="-1" aria-labelledby="reserveModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{% url 'trainer-reserve' object.pk %}">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="reserveModalLabel">Reserve {{ object.name }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+
+          {% if reservation_form.non_field_errors %}
+            <div class="alert alert-danger">
+              {{ reservation_form.non_field_errors }}
+            </div>
+          {% endif %}
+
+          <!-- Show the current object's ID as read-only -->
+          <div class="mb-3">
+            <label class="form-label">Trainer ID:</label>
+            <input type="text" class="form-control" value="{{ object.custom_id }}" readonly>
+          </div>
+
+          <!-- Render reservation form fields individually for better control -->
+          <div class="mb-3">
+            {{ reservation_form.reservation_title.label_tag }}
+            {{ reservation_form.reservation_title }}
+            {{ reservation_form.reservation_title.errors }}
+          </div>
+
+          <div class="mb-3">
+            {{ reservation_form.date.label_tag }}
+            {{ reservation_form.date }}
+            {{ reservation_form.date.errors }}
+          </div>
+
+          <div class="row">
+            <div class="col">
+              {{ reservation_form.start_time.label_tag }}
+              {{ reservation_form.start_time }}
+              {{ reservation_form.start_time.errors }}
+            </div>
+            <div class="col">
+              {{ reservation_form.end_time.label_tag }}
+              {{ reservation_form.end_time }}
+              {{ reservation_form.end_time.errors }}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            {{ reservation_form.notes.label_tag }}
+            {{ reservation_form.notes }}
+            {{ reservation_form.notes.errors }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm Reservation</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Reservation Modal -->
+<div class="modal fade" id="editReservationModal" tabindex="-1" aria-labelledby="editReservationModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" id="editReservationForm">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title" id="editReservationModalLabel">Edit Reservation</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="edit_reservation_title" class="form-label">Reservation title</label>
+            <input type="text" class="form-control" id="edit_reservation_title" name="reservation_title" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="edit_date" class="form-label">Date</label>
+            <input type="date" class="form-control" id="edit_date" name="date" required>
+          </div>
+
+          <div class="row">
+            <div class="col">
+              <label for="edit_start_time" class="form-label">Start time</label>
+              <input type="time" class="form-control" id="edit_start_time" name="start_time" required>
+            </div>
+            <div class="col">
+              <label for="edit_end_time" class="form-label">End time</label>
+              <input type="time" class="form-control" id="edit_end_time" name="end_time" required>
+            </div>
+          </div>
+
+          <div class="mb-3 mt-3">
+            <label for="edit_notes" class="form-label">Notes</label>
+            <textarea class="form-control" id="edit_notes" name="notes" rows="3"></textarea>
+          </div>
+          
+          <!-- Status Display and Approval Section (only for staff) -->
+          <div id="statusSection" class="mb-3" style="display: none;">
+            <div class="alert alert-info">
+              <strong>Status:</strong> <span id="reservationStatus"></span>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" id="deleteReservationBtn">Delete</button>
+          <!-- Approval Buttons (only shown for pending reservations, staff only) -->
+          <div id="approvalButtons" style="display: none; margin-right: auto;">
+            <button type="button" class="btn btn-success me-2" id="approveReservationBtn">✓ Approve</button>
+            <button type="button" class="btn btn-warning" id="rejectReservationBtn">✗ Reject</button>
+          </div>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteTrainerModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Delete Trainer</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <strong>{{ object.name }}</strong>?</p>
+        <p class="text-danger">This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <form method="POST" action="{% url 'trainer_delete' object.pk %}">
+          {% csrf_token %}
+          <button class="btn btn-danger" type="submit">Delete</button>
+          <button class="btn btn-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr>
+
+<!-- Calendar Section -->
+<div id="calendar-container" aria-label="Weekly schedule">
+  <h4 style="margin-left:16px;">Trainer Schedule</h4>
+  <div id="calendar"></div>
+</div>
+
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const calendarEl = document.getElementById("calendar");
+    const trainerId = "{{ object.pk }}";
+
+    const calendarHeight = Math.max(600, Math.floor(window.innerHeight * 0.65));
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: "timeGridWeek",
+      slotMinTime: "08:00:00",
+      slotMaxTime: "22:00:00",
+      height: calendarHeight,
+      expandRows: true,
+      headerToolbar: {
+        left: "prev,next today",
+        center: "title",
+        right: "timeGridWeek,timeGridDay"
+      },
+      nowIndicator: true,
+      events: `/trainers/${trainerId}/reservations/`,
+      eventDataTransform: (data) => ({
+        id: data.id,
+        title: data.reservation_title,
+        start: data.date + "T" + data.start_time,
+        end: data.date + "T" + data.end_time,
+        extendedProps: {
+          username: data.user__username,
+          status: data.status
+        },
+        // Style based on status
+        backgroundColor: data.status === 'pending' ? 'rgba(59, 130, 246, 0.3)' : '#3b82f6',
+        borderColor: data.status === 'pending' ? 'rgba(59, 130, 246, 0.5)' : '#3b82f6',
+        textColor: data.status === 'pending' ? '#6b7280' : '#ffffff'
+      }),
+      eventDidMount: function(info) {
+        const status = info.event.extendedProps.status || 'approved';
+        const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+        const tooltip = new bootstrap.Tooltip(info.el, {
+          title: `User: ${info.event.extendedProps.username}\nStatus: ${statusText}\nStart: ${info.event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}\nEnd: ${info.event.end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`,
+          placement: 'top',
+          trigger: 'hover',
+          container: 'body'
+        });
+      },
+      eventClick: function(info) {
+        // Get the reservation data
+        const reservationId = info.event.id;
+        const title = info.event.title;
+        const start = info.event.start;
+        const end = info.event.end;
+        const status = info.event.extendedProps.status || 'approved';
+        
+        // Format date and time for input fields
+        const dateStr = start.toISOString().split('T')[0];
+        const startTimeStr = start.toTimeString().slice(0, 5);
+        const endTimeStr = end.toTimeString().slice(0, 5);
+        
+        // Populate the edit form
+        document.getElementById('edit_reservation_title').value = title;
+        document.getElementById('edit_date').value = dateStr;
+        document.getElementById('edit_start_time').value = startTimeStr;
+        document.getElementById('edit_end_time').value = endTimeStr;
+        
+        // Show status section
+        const statusSection = document.getElementById('statusSection');
+        const reservationStatus = document.getElementById('reservationStatus');
+        const statusText = status.charAt(0).toUpperCase() + status.slice(1);
+        reservationStatus.textContent = statusText;
+        statusSection.style.display = 'block';
+        
+        // Show approval buttons only for pending reservations (make visible to all for testing/demo)
+        // In production, you might want: const isStaff = {{ request.user.is_staff|yesno:"true,false" }};
+        const approvalButtons = document.getElementById('approvalButtons');
+        const isAuthenticated = {{ request.user.is_authenticated|yesno:"true,false" }};
+        
+        // Show approval buttons for authenticated users when status is pending
+        // Change this back to isStaff if you want staff-only approval
+        if (isAuthenticated && status === 'pending') {
+          approvalButtons.style.display = 'flex';
+          
+          // Set up approve button
+          const approveBtn = document.getElementById('approveReservationBtn');
+          approveBtn.onclick = function() {
+            const approveForm = document.createElement('form');
+            approveForm.method = 'POST';
+            approveForm.action = `/trainers/${trainerId}/reservations/${reservationId}/approve/`;
+            
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken;
+            approveForm.appendChild(csrfInput);
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'approve';
+            approveForm.appendChild(actionInput);
+            
+            document.body.appendChild(approveForm);
+            approveForm.submit();
+          };
+          
+          // Set up reject button
+          const rejectBtn = document.getElementById('rejectReservationBtn');
+          rejectBtn.onclick = function() {
+            if (confirm('Are you sure you want to reject this reservation?')) {
+              const rejectForm = document.createElement('form');
+              rejectForm.method = 'POST';
+              rejectForm.action = `/trainers/${trainerId}/reservations/${reservationId}/approve/`;
+              
+              const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+              const csrfInput = document.createElement('input');
+              csrfInput.type = 'hidden';
+              csrfInput.name = 'csrfmiddlewaretoken';
+              csrfInput.value = csrfToken;
+              rejectForm.appendChild(csrfInput);
+              
+              const actionInput = document.createElement('input');
+              actionInput.type = 'hidden';
+              actionInput.name = 'action';
+              actionInput.value = 'reject';
+              rejectForm.appendChild(actionInput);
+              
+              document.body.appendChild(rejectForm);
+              rejectForm.submit();
+            }
+          };
+        } else {
+          approvalButtons.style.display = 'none';
+        }
+        
+        // Set the form action URL for editing
+        const editForm = document.getElementById('editReservationForm');
+        editForm.action = `/trainers/${trainerId}/reservations/${reservationId}/edit/`;
+        
+        // Set up delete button
+        const deleteBtn = document.getElementById('deleteReservationBtn');
+        deleteBtn.onclick = function() {
+          if (confirm('Are you sure you want to delete this reservation?')) {
+            // Create a form and submit it for deletion
+            const deleteForm = document.createElement('form');
+            deleteForm.method = 'POST';
+            deleteForm.action = `/trainers/${trainerId}/reservations/${reservationId}/delete/`;
+            
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            const csrfInput = document.createElement('input');
+            csrfInput.type = 'hidden';
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = csrfToken;
+            deleteForm.appendChild(csrfInput);
+            
+            document.body.appendChild(deleteForm);
+            deleteForm.submit();
+          }
+        };
+        
+        // Show the edit modal
+        const editModal = new bootstrap.Modal(document.getElementById('editReservationModal'));
+        editModal.show();
+      }
+    });
+
+    calendar.render();
+
+    requestAnimationFrame(() => calendar.updateSize());
+
+    let resizeTimeout;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        const newHeight = Math.max(500, Math.floor(window.innerHeight * 0.6));
+        calendar.setOption('height', newHeight);
+        calendar.updateSize();
+      }, 150);
+    });
+  });
+</script>
+
+{% if form_edit and form_edit.errors %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var el = document.getElementById('editTrainerModal');
+  if (el) new bootstrap.Modal(el).show();
+});
+</script>
+{% endif %}
+{% endblock %}

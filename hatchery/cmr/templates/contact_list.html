@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block head %}
+<style>
+  .contacts-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+
+  .contacts-header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+
+  .contacts-header h2 {
+    color: #2C4949;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+
+  .contacts-header p {
+    color: #5a5a5a;
+    font-size: 1.1rem;
+  }
+
+  .add-contact-btn {
+    display: block;
+    margin: 0 auto 40px;
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+    font-weight: 600;
+    padding: 12px 30px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+  }
+
+  .add-contact-btn:hover {
+    background-color: #157347;
+    border-color: #157347;
+    transform: translateY(-2px);
+  }
+
+  .contacts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 30px;
+    margin-top: 30px;
+  }
+
+  .contact-tile {
+    background: white;
+    border: 2px solid #2C4949;
+    border-radius: 16px;
+    padding: 30px;
+    text-align: center;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(44, 73, 73, 0.1);
+  }
+
+  .contact-tile:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(44, 73, 73, 0.2);
+  }
+
+  .contact-photo {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+    overflow: hidden;
+    border: 3px solid #5E48AD;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+  }
+
+  .contact-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .contact-photo .default-avatar {
+    font-size: 4rem;
+    color: #5E48AD;
+  }
+
+  .contact-name {
+    color: #2C4949;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .contact-position {
+    color: #5E48AD;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+
+  .contact-info {
+    text-align: left;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px;
+  }
+
+  .contact-info-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    color: #5a5a5a;
+    font-size: 0.95rem;
+  }
+
+  .contact-info-item:last-child {
+    margin-bottom: 0;
+  }
+
+  .contact-info-item strong {
+    color: #2C4949;
+    min-width: 60px;
+  }
+
+  .contact-info-item a {
+    color: #5E48AD;
+    text-decoration: none;
+    word-break: break-word;
+  }
+
+  .contact-info-item a:hover {
+    text-decoration: underline;
+  }
+
+  .no-contacts {
+    text-align: center;
+    color: #5a5a5a;
+    font-size: 1.2rem;
+    margin-top: 60px;
+  }
+
+  .modal-content {
+    border: 1px solid #2C4949;
+    border-radius: 10px;
+  }
+
+  .modal-header {
+    background-color: transparent;
+    color: #5a5a5a;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .modal-header .modal-title {
+    color: #5a5a5a;
+  }
+
+  .modal-footer .btn-primary {
+    background-color: #198754;
+    border-color: #198754;
+    color: white;
+    font-weight: 600;
+  }
+
+  .modal-footer .btn-primary:hover {
+    background-color: #157347;
+    border-color: #157347;
+  }
+
+  .form-label {
+    color: #5a5a5a;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="contacts-container">
+  <div class="contacts-header">
+    <h2>Contact Us</h2>
+    <p>Get in touch with our team</p>
+  </div>
+
+  {% if is_admin %}
+    <button type="button" class="btn add-contact-btn" data-bs-toggle="modal" data-bs-target="#addContactModal">
+      Add Contact
+    </button>
+  {% endif %}
+
+  {% if contacts %}
+    <div class="contacts-grid">
+      {% for contact in contacts %}
+        <div class="contact-tile">
+          <div class="contact-photo">
+            {% if contact.photo %}
+              <img src="{{ contact.photo.url }}" alt="{{ contact.name }}">
+            {% else %}
+              <div class="default-avatar">👤</div>
+            {% endif %}
+          </div>
+
+          <div class="contact-name">{{ contact.name }}</div>
+          <div class="contact-position">{{ contact.position }}</div>
+
+          <div class="contact-info">
+            <div class="contact-info-item">
+              <strong>Email:</strong>
+              <a href="mailto:{{ contact.email }}">{{ contact.email }}</a>
+            </div>
+            <div class="contact-info-item">
+              <strong>Phone:</strong>
+              <a href="tel:{{ contact.phone }}">{{ contact.phone }}</a>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="no-contacts">
+      <p>No contacts available at this time.</p>
+    </div>
+  {% endif %}
+</div>
+
+<!-- Add Contact Modal -->
+{% if is_admin %}
+<div class="modal fade" id="addContactModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="POST" action="{% url 'contact-create' %}" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Add New Contact</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          {% for field in form %}
+            <div class="mb-3">
+              <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+              {{ field }}
+              {% if field.help_text %}
+                <small class="form-text text-muted">{{ field.help_text }}</small>
+              {% endif %}
+              {% if field.errors %}
+                <div class="text-danger">{{ field.errors }}</div>
+              {% endif %}
+            </div>
+          {% endfor %}
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-primary">Add Contact</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% if open_modal %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var el = document.getElementById('addContactModal');
+    if (el) new bootstrap.Modal(el).show();
+  });
+</script>
+{% endif %}
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% endblock %}

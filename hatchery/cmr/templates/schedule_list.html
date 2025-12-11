@@ -1,0 +1,504 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/spaces_list.css' %}">
+<style>
+  .heart-button {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 10px;
+    transition: transform 0.2s;
+  }
+  .heart-button:hover {
+    transform: scale(1.2);
+  }
+  .heart-active {
+    color: #e74c3c;
+  }
+  .heart-inactive {
+    color: #bdc3c7;
+  }
+  .active-badge {
+    background-color: #2C4949;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: 10px;
+  }
+  .schedule-header {
+    display: flex;
+    align-items: center;
+  }
+  .btn-primary {
+    color: white !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="container py-3">
+  <h2 class="mb-3">Schedules</h2>
+
+  <!-- Messages Display -->
+  {% if messages %}
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <!-- Search Bar and Add Button -->
+  <form method="GET" class="mb-4">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-4">
+        <input
+          type="text"
+          name="q"
+          class="form-control"
+          placeholder="Search schedules by name"
+          value="{{ search_query }}">
+      </div>
+
+      <div class="col-md-2">
+        <button type="submit" class="btn btn-primary w-100">Search</button>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-success mt-3" data-bs-toggle="modal" data-bs-target="#addScheduleModal">Add New Schedule</button>
+  </form>
+
+  <!-- Schedule List -->
+  {% for schedule in schedule_list %}
+    <div class="space_container {% if forloop.first %}active{% endif %}">
+      <!-- Icon placeholder -->
+      <div class="space_icon"></div>
+
+      <!-- Schedule details -->
+      <div class="space_details">
+        <div class="schedule-header">
+          <h3>{{ schedule.name }}</h3>
+          {% if schedule.is_active %}
+            <span class="active-badge">ACTIVE</span>
+          {% endif %}
+          <!-- Heart button to set as active -->
+          <form action="{% url 'schedule-set-active' schedule.id %}" method="POST" style="display:inline;">
+            {% csrf_token %}
+            <button type="submit" class="heart-button {% if schedule.is_active %}heart-active{% else %}heart-inactive{% endif %}" title="{% if schedule.is_active %}Active Schedule{% else %}Set as Active{% endif %}">
+              {% if schedule.is_active %}♥{% else %}♡{% endif %}
+            </button>
+          </form>
+        </div>
+        <p>
+          <strong>Active Period:</strong> {{ schedule.start_date }} to {{ schedule.end_date }}<br>
+          <strong>Hours:</strong> {{ schedule.open_time|time:"g:i A" }} - {{ schedule.close_time|time:"g:i A" }}<br>
+          <strong>Days:</strong> {{ schedule.days_of_week }}<br>
+          {% if schedule.location %}
+            <strong>Location:</strong> {{ schedule.location }}<br>
+          {% endif %}
+          {% if schedule.holidays %}
+            <strong>Holidays:</strong> {{ schedule.holidays }}
+          {% endif %}
+        </p>
+      </div>
+
+      <!-- Action buttons -->
+      <div>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#editScheduleModal{{ schedule.id }}">Edit</button>
+        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ schedule.id }}">Delete</button>
+      </div>
+
+      <!-- Delete Confirmation Modal -->
+      <div class="modal fade" id="deleteModal{{ schedule.id }}" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Confirm Deletion</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              Are you sure you want to delete "{{ schedule.name }}"? This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <form action="{% url 'schedule-delete' schedule.id %}" method="POST" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">Delete</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% empty %}
+    <p>No schedules found.</p>
+  {% endfor %}
+
+  <!-- Modal for Creating New Schedule -->
+  <div class="modal fade" id="addScheduleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="POST" action="{% url 'schedule-create' %}">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title">Create New Schedule</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <!-- Schedule Name -->
+            <div class="form-section mb-3">
+              <label for="id_name" class="form-label">{{ form.name.label }}</label>
+              {{ form.name }}
+              {% if form.name.errors %}
+                <div class="text-danger">{{ form.name.errors }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Start and End Dates -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-section mb-3">
+                  <label for="id_start_date" class="form-label">{{ form.start_date.label }}</label>
+                  {{ form.start_date }}
+                  {% if form.start_date.errors %}
+                    <div class="text-danger">{{ form.start_date.errors }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-section mb-3">
+                  <label for="id_end_date" class="form-label">{{ form.end_date.label }}</label>
+                  {{ form.end_date }}
+                  {% if form.end_date.errors %}
+                    <div class="text-danger">{{ form.end_date.errors }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Open and Close Times -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-section mb-3">
+                  <label for="id_open_time" class="form-label">{{ form.open_time.label }}</label>
+                  {{ form.open_time }}
+                  {% if form.open_time.errors %}
+                    <div class="text-danger">{{ form.open_time.errors }}</div>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-section mb-3">
+                  <label for="id_close_time" class="form-label">{{ form.close_time.label }}</label>
+                  {{ form.close_time }}
+                  {% if form.close_time.errors %}
+                    <div class="text-danger">{{ form.close_time.errors }}</div>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+
+            <!-- Days of Week -->
+            <div class="form-section mb-3">
+              <label class="form-label d-block text-center">Days of the Week (select all that apply)</label>
+              <div class="days-circles-container">
+                <div class="day-circle-wrapper">
+                  {{ form.monday }}
+                  <label for="id_monday" class="day-circle">M</label>
+                </div>
+                <div class="day-circle-wrapper">
+                  {{ form.tuesday }}
+                  <label for="id_tuesday" class="day-circle">T</label>
+                </div>
+                <div class="day-circle-wrapper">
+                  {{ form.wednesday }}
+                  <label for="id_wednesday" class="day-circle">W</label>
+                </div>
+                <div class="day-circle-wrapper">
+                  {{ form.thursday }}
+                  <label for="id_thursday" class="day-circle">Th</label>
+                </div>
+                <div class="day-circle-wrapper">
+                  {{ form.friday }}
+                  <label for="id_friday" class="day-circle">F</label>
+                </div>
+                <div class="day-circle-wrapper">
+                  {{ form.saturday }}
+                  <label for="id_saturday" class="day-circle">S</label>
+                </div>
+                <div class="day-circle-wrapper">
+                  {{ form.sunday }}
+                  <label for="id_sunday" class="day-circle">Su</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Location -->
+            <div class="form-section mb-3">
+              <label for="id_location" class="form-label">Location</label>
+              {{ form.location }}
+              {% if form.location.errors %}
+                <div class="text-danger">{{ form.location.errors }}</div>
+              {% endif %}
+            </div>
+
+            <!-- Holidays -->
+            <div class="form-section mb-3">
+              <label for="id_holidays" class="form-label">{{ form.holidays.label }}</label>
+              {{ form.holidays }}
+              <small class="form-text text-muted">
+                Enter holiday dates in mm-dd-yr format, separated by semicolons (e.g., 12-25-24;01-01-25)
+              </small>
+              {% if form.holidays.errors %}
+                <div class="text-danger">{{ form.holidays.errors }}</div>
+              {% endif %}
+            </div>
+          </div>
+          <div class="modal-footer d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Create Schedule</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  {% for schedule in schedule_list %}
+  <!-- Modal for Editing Schedule -->
+  <div class="modal fade" id="editScheduleModal{{ schedule.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form method="POST" action="{% url 'schedule-edit' schedule.id %}">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title">Edit Schedule</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <!-- Schedule Name -->
+            <div class="form-section mb-3">
+              <label for="id_name_{{ schedule.id }}" class="form-label">Name</label>
+              <input type="text" name="name" id="id_name_{{ schedule.id }}" class="form-control" value="{{ schedule.name }}" required>
+            </div>
+
+            <!-- Start and End Dates -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-section mb-3">
+                  <label for="id_start_date_{{ schedule.id }}" class="form-label">Start Date</label>
+                  <input type="date" name="start_date" id="id_start_date_{{ schedule.id }}" class="form-control" value="{{ schedule.start_date|date:'Y-m-d' }}" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-section mb-3">
+                  <label for="id_end_date_{{ schedule.id }}" class="form-label">End Date</label>
+                  <input type="date" name="end_date" id="id_end_date_{{ schedule.id }}" class="form-control" value="{{ schedule.end_date|date:'Y-m-d' }}" required>
+                </div>
+              </div>
+            </div>
+
+            <!-- Open and Close Times -->
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-section mb-3">
+                  <label for="id_open_time_{{ schedule.id }}" class="form-label">Open Time</label>
+                  <input type="time" name="open_time" id="id_open_time_{{ schedule.id }}" class="form-control" value="{{ schedule.open_time|time:'H:i' }}" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-section mb-3">
+                  <label for="id_close_time_{{ schedule.id }}" class="form-label">Close Time</label>
+                  <input type="time" name="close_time" id="id_close_time_{{ schedule.id }}" class="form-control" value="{{ schedule.close_time|time:'H:i' }}" required>
+                </div>
+              </div>
+            </div>
+
+            <!-- Days of Week -->
+            <div class="form-section mb-3">
+              <label class="form-label d-block text-center">Days of the Week (select all that apply)</label>
+              <div class="days-circles-container">
+                <div class="day-circle-wrapper">
+                  <input type="checkbox" name="monday" id="id_monday_{{ schedule.id }}" {% if schedule.monday %}checked{% endif %}>
+                  <label for="id_monday_{{ schedule.id }}" class="day-circle">M</label>
+                </div>
+                <div class="day-circle-wrapper">
+                  <input type="checkbox" name="tuesday" id="id_tuesday_{{ schedule.id }}" {% if schedule.tuesday %}checked{% endif %}>
+                  <label for="id_tuesday_{{ schedule.id }}" class="day-circle">T</label>
+                </div>
+                <div class="day-circle-wrapper">
+                  <input type="checkbox" name="wednesday" id="id_wednesday_{{ schedule.id }}" {% if schedule.wednesday %}checked{% endif %}>
+                  <label for="id_wednesday_{{ schedule.id }}" class="day-circle">W</label>
+                </div>
+                <div class="day-circle-wrapper">
+                  <input type="checkbox" name="thursday" id="id_thursday_{{ schedule.id }}" {% if schedule.thursday %}checked{% endif %}>
+                  <label for="id_thursday_{{ schedule.id }}" class="day-circle">Th</label>
+                </div>
+                <div class="day-circle-wrapper">
+                  <input type="checkbox" name="friday" id="id_friday_{{ schedule.id }}" {% if schedule.friday %}checked{% endif %}>
+                  <label for="id_friday_{{ schedule.id }}" class="day-circle">F</label>
+                </div>
+                <div class="day-circle-wrapper">
+                  <input type="checkbox" name="saturday" id="id_saturday_{{ schedule.id }}" {% if schedule.saturday %}checked{% endif %}>
+                  <label for="id_saturday_{{ schedule.id }}" class="day-circle">S</label>
+                </div>
+                <div class="day-circle-wrapper">
+                  <input type="checkbox" name="sunday" id="id_sunday_{{ schedule.id }}" {% if schedule.sunday %}checked{% endif %}>
+                  <label for="id_sunday_{{ schedule.id }}" class="day-circle">Su</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Location -->
+            <div class="form-section mb-3">
+              <label for="id_location_{{ schedule.id }}" class="form-label">Location</label>
+              <input type="text" name="location" id="id_location_{{ schedule.id }}" class="form-control" value="{{ schedule.location }}">
+            </div>
+
+            <!-- Holidays -->
+            <div class="form-section mb-3">
+              <label for="id_holidays_{{ schedule.id }}" class="form-label">Holidays</label>
+              <input type="text" name="holidays" id="id_holidays_{{ schedule.id }}" class="form-control" value="{{ schedule.holidays }}">
+              <small class="form-text text-muted">
+                Enter holiday dates in mm-dd-yr format, separated by semicolons (e.g., 12-25-24;01-01-25)
+              </small>
+            </div>
+          </div>
+          <div class="modal-footer d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Update Schedule</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+
+</div>
+
+<style>
+  /* Days of Week Circles */
+  .days-circles-container {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+  }
+
+  .day-circle-wrapper {
+    position: relative;
+  }
+
+  /* Hide the actual checkbox */
+  .day-circle-wrapper input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  /* Style the circle label */
+  .day-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid #2C4949;
+    background-color: white;
+    color: #2C4949;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+  }
+
+  /* Hover effect */
+  .day-circle:hover {
+    background-color: #e8f0f0;
+    transform: scale(1.05);
+  }
+
+  /* Selected state */
+  .day-circle-wrapper input[type="checkbox"]:checked + .day-circle {
+    background-color: #2C4949;
+    color: white;
+    border-color: #2C4949;
+  }
+
+  .modal-content {
+    border: 1px solid #2C4949;
+    border-radius: 10px;
+  }
+
+  .modal-header {
+    background-color: transparent;
+    color: #5a5a5a;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .modal-header .modal-title {
+    color: #5a5a5a;
+  }
+
+  .modal-header .btn-close {
+    filter: none;
+  }
+
+  .modal-footer .btn-primary {
+    background-color: #2C4949;
+    border-color: #2C4949;
+    color: white !important;
+    font-weight: 600;
+  }
+
+  .modal-footer .btn-primary:hover {
+    background-color: #1f3535;
+    border-color: #1f3535;
+  }
+
+  .form-label {
+    color: #5a5a5a;
+  }
+
+  .btn-secondary {
+    background-color: #6c757d;
+    border-color: #6c757d;
+  }
+
+  .btn-secondary:hover {
+    background-color: #5a6268;
+    border-color: #545b62;
+  }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+{% if open_modal_create or form.errors %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var el = document.getElementById('addScheduleModal');
+    if (el) new bootstrap.Modal(el).show();
+  });
+</script>
+{% endif %}
+
+{% if edit_schedule_id %}
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    var el = document.getElementById('editScheduleModal{{ edit_schedule_id }}');
+    if (el) new bootstrap.Modal(el).show();
+  });
+</script>
+{% endif %}
+
+{% endblock %}

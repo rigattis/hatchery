@@ -1,0 +1,323 @@
+
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/machine_detail.css' %}">
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+{% if messages %}
+<div class="container mt-3">
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+
+<div class="container py-3">
+
+  <!-- Back Button -->
+  <div class="back-button">
+    <a href="{% url 'machine_by_name' object.name %}" class="btn btn-back">← Back To Machines</a>
+  </div>
+
+  <!-- Space Card -->
+  <div class="space_card">
+    <div class="space_details">
+      <h2 class="mb-3">{{ object.name }} {{ object.custom_id }}</h2>
+      {% if object.machine_image %}
+      <div style="margin-bottom: 10px;">
+        <img src="{{ object.machine_image.url }}" alt="Machine image"
+             style="max-width: 100%; height: auto; border-radius: 8px;">
+      </div>
+      {% endif %}
+      <p><strong>About:</strong>
+        {{ object.about }}
+      </p>
+      <p><strong>Location:</strong>
+        {% if object.installed_in %}
+        {{ object.installed_in.location }}:
+        {{ object.installed_in }}
+        {% else %}
+        none 
+        {% endif %}
+      </p>
+      </p>
+      <p><strong>Category:</strong> {{ object.category }}</p>
+      <p><strong>Amount:</strong> {{ object.amount }}</p>
+      {% if object.specifications %}
+      <p><strong>Specification:</strong> {{ object.specifications }}</p>
+      {% endif %}
+    </div>
+      <h4 class="mt-3">Certifications Required</h4>
+      {% if object.certifications_required.all %}
+        <ul>
+        {% for c in object.certifications_required.all %}
+          <li><strong>{{ c.name }}</strong></li>
+        {% endfor %}
+        </ul>
+      {% else %}
+        <p>No certifications are required for this machine.</p>
+      {% endif %}
+
+    <h4 class="mt-3">Certified Trainers</h4>
+      {% if trainers %}
+        <ul>
+          {% for t in trainers %}
+            <li>
+              <strong>{{ t.name }}</strong>
+              {% if t.training_certificates %}
+                – {{ t.training_certificates }}
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <p>No trainers are currently listed as certified for this machine.</p>
+      {% endif %}
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+      {% if user.is_authenticated %}
+      {% if user.is_superuser or user.is_staff %}
+          <!-- Edit/Delete buttons -->
+          <button type="button" class="btn btn-edit" data-bs-toggle="modal" data-bs-target="#editMachineModal">
+            Edit
+          </button>
+          <button type="button" class="btn btn-delete" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal">
+            Delete
+          </button>
+        {% else %}
+          {% if user.person %}
+            {% if user.person.role == "Staff" %}
+              <!-- Edit/Delete buttons -->
+              <button type="button" class="btn btn-edit" data-bs-toggle="modal" data-bs-target="#editMachineModal">
+                Edit
+              </button>
+              <button type="button" class="btn btn-delete" data-bs-toggle="modal" data-bs-target="#deleteConfirmModal">
+                Delete
+              </button>
+            {% endif %}
+          {% endif %}
+        {% endif %}
+    {% endif %}
+
+    <!-- Reserve button always visible -->
+    <button type="button" class="btn btn-reserve" data-bs-toggle="modal" data-bs-target="#reserveModal">
+      Reserve
+    </button>
+
+  </div>
+
+</div>
+
+
+    <!-- Delete Modal -->
+  <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteConfirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="deleteConfirmModalLabel">Confirm Deletion</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Are you sure you want to delete <strong>{{ object.name }}</strong>? This action cannot be undone.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+
+          <form
+            {% if object.custom_id %}
+              action="{% url 'machine-delete' object.custom_id %}"
+            {% else %}
+              action="{% url 'machine-delete-id' object.pk %}"
+            {% endif %}
+            method="POST"
+            style="display:inline;"
+        >
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger">Yes, Delete</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    <!-- Edit Modal -->
+  <div class="modal fade" id="editMachineModal" tabindex="-1" aria-labelledby="editMachineModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <form
+          method="POST"
+          enctype="multipart/form-data"
+          {% if object.custom_id %}
+            action="{% url 'machine-edit' object.custom_id %}"
+          {% else %}
+            action="{% url 'machine-edit-id' object.pk %}"
+          {% endif %}
+        >
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title" id="editMachineModalLabel">Edit {{ object.name }}</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            {{ edit_form.as_p }}
+            {# optional: ensure the object identity if your form handler reads it #}
+            <input type="hidden" name="machine" value="{{ object.custom_id|default:object.pk }}">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Confirm Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reservation Modal -->
+    <div class="modal fade" id="reserveModal" tabindex="-1" aria-labelledby="reserveModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+        <form method="POST" action="{% url 'machine-reserve' object.custom_id %}">
+            {% csrf_token %}
+            <div class="modal-header">
+            <h5 class="modal-title" id="reserveModalLabel">Reserve {{ object.title }}</h5>
+            
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              {% with required=object.certifications_required.all %}
+            {% if required %}
+                <div class="alert alert-danger fw-bold">
+                    ⚠️ Required Training Needed:
+                    <ul>
+                        {% for item in required %}
+                        <li>{{ item.name }}</li>
+                        {% endfor %}
+                    </ul>
+                    {% if not user.person.training_records.all %}
+                        <p>You currently have no training records.</p>
+                    {% else %}
+                        <p>You may not be allowed to reserve this machine.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+          {% if reservation_form.non_field_errors %}
+            <div class="alert alert-danger">
+              {{ reservation_form.non_field_errors }}
+            </div>
+          {% endif %}
+
+          <!-- Show the current object's ID as read-only -->
+          <div class="mb-3">
+            <label class="form-label">ID:</label>
+            <input type="text" class="form-control" value="{{ object.custom_id }}" readonly>
+          </div>
+
+          <!-- Render reservation form fields individually for better control -->
+          <div class="mb-3">
+            {{ reservation_form.reservation_title.label_tag }}
+            {{ reservation_form.reservation_title }}
+            {{ reservation_form.reservation_title.errors }}
+          </div>
+
+          <div class="mb-3">
+            {{ reservation_form.date.label_tag }}
+            {{ reservation_form.date }}
+            {{ reservation_form.date.errors }}
+          </div>
+
+          <div class="row">
+            <div class="col">
+              {{ reservation_form.start_time.label_tag }}
+              {{ reservation_form.start_time }}
+              {{ reservation_form.start_time.errors }}
+            </div>
+            <div class="col">
+              {{ reservation_form.end_time.label_tag }}
+              {{ reservation_form.end_time }}
+              {{ reservation_form.end_time.errors }}
+            </div>
+          </div>
+
+          <div class="mb-3">
+            {{ reservation_form.notes.label_tag }}
+            {{ reservation_form.notes }}
+            {{ reservation_form.notes.errors }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Confirm Reservation</button>
+        </div>
+        </form>
+        </div>
+    </div>
+</div>
+
+<h2 class="mb-3 text-center">Machine Availability: Weekly Schedule</h2>
+<div id="calendar-container" aria-label="Weekly schedule">
+  <h4 style="margin-left:16px;"> </h4>
+  <div id="calendar"></div>
+</div>
+
+{% block scripts %}
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const calendarEl = document.getElementById("calendar");
+    const customId = "{{ object.custom_id }}";
+
+    const calendarHeight = Math.max(600, Math.floor(window.innerHeight * 0.65));
+
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: "timeGridWeek",
+      slotMinTime: "08:00:00",
+      slotMaxTime: "22:00:00",
+      height: calendarHeight,
+      expandRows: true,
+      headerToolbar: {
+        left: "prev,next today",
+        center: "title",
+        right: "timeGridWeek,timeGridDay"
+      },
+      nowIndicator: true,
+      events: `/machines/${customId}/reservations/`,
+      eventDataTransform: (data) => ({
+        id: data.id,
+        title: data.reservation_title,
+        start: data.date + "T" + data.start_time,
+        end: data.date + "T" + data.end_time
+      })
+    });
+
+    calendar.render();
+    
+    requestAnimationFrame(() => calendar.updateSize());
+
+    
+    let resizeTimeout;
+    window.addEventListener("resize", () => {
+      clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(() => {
+        const newHeight = Math.max(500, Math.floor(window.innerHeight * 0.6));
+        calendar.setOption('height', newHeight);
+        calendar.updateSize();
+      }, 150);
+    });
+  });
+</script>
+
+</div>
+{% endblock %}
+{% endblock %}

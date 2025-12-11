@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/machine_detail.css' %}">
+<link rel="stylesheet" href="{% static 'css/machine_list_css.css' %}">
+
+<div class="container py-3">
+  <h2 class="mb-3">Machines: {{ name }}</h2>
+
+  <a href="{% url 'machine_list' %}" class="btn btn-secondary mb-3">
+    ← Back to all machine types
+  </a>
+
+  <div class="machines-grid">
+    {% for m in machines %}
+      <a href="{{ m.get_absolute_url }}" class="machine-tile">
+        <div class="machine-icon">
+          {% if m.machine_image %}
+            <img src="{{ m.machine_image.url }}" alt="{{ m.name }}">
+          {% else %}
+            <p>No image available</p>
+          {% endif %}
+        </div>
+        <div class="machine-info">
+          <h3 class="machine-name">
+            {{ m.name }}
+          </h3>
+          <p class="machine-category">{{ m.category }}</p>
+          <p class="machine-certificate">
+            {% for course in m.certifications_required.all %}
+              {{ course.name }}{% if not forloop.last %}, {% endif %}
+            {% empty %}
+              None
+            {% endfor %}
+          </p>
+          <p class="machine-location"> 📍 {{ m.installed_in.location }}: {{ m.installed_in }} </p>
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

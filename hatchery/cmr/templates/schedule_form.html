@@ -1,0 +1,206 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block head %}
+<link rel="stylesheet" href="{% static 'css/spaces_list.css' %}">
+<style>
+  /* Days of Week Circles */
+  .days-circles-container {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+  }
+
+  .day-circle-wrapper {
+    position: relative;
+  }
+
+  /* Hide the actual checkbox */
+  .day-circle-wrapper input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  /* Style the circle label */
+  .day-circle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 3px solid #2C4949;
+    background-color: white;
+    color: #2C4949;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+  }
+
+  /* Hover effect */
+  .day-circle:hover {
+    background-color: #FBD7CB;
+    transform: scale(1.05);
+  }
+
+  /* Selected state */
+  .day-circle-wrapper input[type="checkbox"]:checked + .day-circle {
+    background-color: #2C4949;
+    color: white;
+    border-color: #2C4949;
+  }
+
+  .form-section {
+    margin-bottom: 20px;
+  }
+
+  .form-section .section-label {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+  .form-section label:not(.day-circle):not(.section-label) {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 5px;
+  }
+
+  .btn-primary {
+    color: white !important;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container text-center">
+  <h1 class="text-center">{% if is_edit %}Edit Schedule{% else %}Create New Schedule{% endif %}</h1>
+
+  <form method="POST">
+    {% csrf_token %}
+
+    <!-- Schedule Name -->
+    <div class="form-section">
+      <label for="id_name">{{ form.name.label }}</label>
+      {{ form.name }}
+      {% if form.name.errors %}
+        <div class="text-danger">{{ form.name.errors }}</div>
+      {% endif %}
+    </div>
+
+    <!-- Start and End Dates -->
+    <div class="row">
+      <div class="col-md-6">
+        <div class="form-section">
+          <label for="id_start_date">{{ form.start_date.label }}</label>
+          {{ form.start_date }}
+          {% if form.start_date.errors %}
+            <div class="text-danger">{{ form.start_date.errors }}</div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="form-section">
+          <label for="id_end_date">{{ form.end_date.label }}</label>
+          {{ form.end_date }}
+          {% if form.end_date.errors %}
+            <div class="text-danger">{{ form.end_date.errors }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Open and Close Times -->
+    <div class="row">
+      <div class="col-md-6">
+        <div class="form-section">
+          <label for="id_open_time">{{ form.open_time.label }}</label>
+          {{ form.open_time }}
+          {% if form.open_time.errors %}
+            <div class="text-danger">{{ form.open_time.errors }}</div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="form-section">
+          <label for="id_close_time">{{ form.close_time.label }}</label>
+          {{ form.close_time }}
+          {% if form.close_time.errors %}
+            <div class="text-danger">{{ form.close_time.errors }}</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Days of Week -->
+    <div class="form-section">
+      <label class="section-label">Days of the Week (select all that apply)</label>
+      <div class="days-circles-container">
+        <div class="day-circle-wrapper">
+          {{ form.monday }}
+          <label for="id_monday" class="day-circle">M</label>
+        </div>
+        <div class="day-circle-wrapper">
+          {{ form.tuesday }}
+          <label for="id_tuesday" class="day-circle">T</label>
+        </div>
+        <div class="day-circle-wrapper">
+          {{ form.wednesday }}
+          <label for="id_wednesday" class="day-circle">W</label>
+        </div>
+        <div class="day-circle-wrapper">
+          {{ form.thursday }}
+          <label for="id_thursday" class="day-circle">Th</label>
+        </div>
+        <div class="day-circle-wrapper">
+          {{ form.friday }}
+          <label for="id_friday" class="day-circle">F</label>
+        </div>
+        <div class="day-circle-wrapper">
+          {{ form.saturday }}
+          <label for="id_saturday" class="day-circle">S</label>
+        </div>
+        <div class="day-circle-wrapper">
+          {{ form.sunday }}
+          <label for="id_sunday" class="day-circle">Su</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Location -->
+    <div class="form-section">
+      <label for="id_location">Location</label>
+      {{ form.location }}
+      {% if form.location.errors %}
+        <div class="text-danger">{{ form.location.errors }}</div>
+      {% endif %}
+    </div>
+
+    <!-- Holidays -->
+    <div class="form-section">
+      <label for="id_holidays">{{ form.holidays.label }}</label>
+      {{ form.holidays }}
+      <small class="form-text text-muted">
+        Enter holiday dates in mm-dd-yr format, separated by semicolons (e.g., 12-25-24;01-01-25)
+      </small>
+      {% if form.holidays.errors %}
+        <div class="text-danger">{{ form.holidays.errors }}</div>
+      {% endif %}
+    </div>
+
+    <!-- Submit Buttons -->
+    <div class="form-section">
+      <button type="submit" class="btn btn-primary">
+        {% if is_edit %}Update Schedule{% else %}Create Schedule{% endif %}
+      </button>
+      <a href="{% url 'schedule-list' %}" class="btn btn-primary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
